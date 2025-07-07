@@ -1,0 +1,6 @@
+# Root .gitignore
+node_modules/
+.env*.local
+
+# Don't ignore drizzle folder - migrations should be committed
+# packages/db/drizzle/   # ❌ Don't ignore this
