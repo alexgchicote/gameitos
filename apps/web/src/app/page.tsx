@@ -4,68 +4,55 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trophy, Medal, Award, Plus, Users, Target, TrendingUp } from "lucide-react";
+import { Trophy, Medal, Award, Plus, Users, Target, TrendingUp, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { GameResultForm } from "@/components/leaderboard/GameResultForm";
+import { PointDistributionPreview } from "@/components/leaderboard/PointDistributionPreview";
 
-// Mock data for demonstration (in real app, this would come from database)
-const mockPlayers = [
-  {
-    id: "1",
-    name: "Alex Chen",
-    totalPoints: 247,
-    gamesPlayed: 12,
-    wins: 4,
-    podiums: 8,
-    winRate: 33.3,
-    podiumRate: 66.7,
-    averagePoints: 20.6,
-    recentForm: [2, 1, 3, 1, 2],
-  },
-  {
-    id: "2", 
-    name: "Maria Rodriguez",
-    totalPoints: 198,
-    gamesPlayed: 10,
-    wins: 2,
-    podiums: 6,
-    winRate: 20.0,
-    podiumRate: 60.0,
-    averagePoints: 19.8,
-    recentForm: [3, 4, 2, 1, 3],
-  },
-  {
-    id: "3",
-    name: "Jordan Kim", 
-    totalPoints: 156,
-    gamesPlayed: 8,
-    wins: 1,
-    podiums: 4,
-    winRate: 12.5,
-    podiumRate: 50.0,
-    averagePoints: 19.5,
-    recentForm: [1, 5, 3, 2, 4],
-  },
-  {
-    id: "4",
-    name: "Sam Taylor",
-    totalPoints: 134,
-    gamesPlayed: 9,
-    wins: 1,
-    podiums: 3,
-    winRate: 11.1,
-    podiumRate: 33.3,
-    averagePoints: 14.9,
-    recentForm: [4, 3, 5, 4, 6],
-  },
-];
+// Types
+type Player = {
+  id: string;
+  name: string;
+  totalPoints: number;
+  gamesPlayed: number;
+  wins: number;
+  podiums: number;
+  winRate: number;
+  podiumRate: number;
+  averagePoints: number;
+  recentForm: number[];
+};
 
-const pointDistribution = [
-  { position: 1, points: 25 },
-  { position: 2, points: 18 },
-  { position: 3, points: 15 },
-  { position: 4, points: 12 },
-  { position: 5, points: 10 },
-  { position: 6, points: 8 },
+type GameResult = {
+  playerId: string;
+  position: number;
+};
+
+type Stats = {
+  totalPlayers: number;
+  totalGames: number;
+  topScore: number;
+  avgPointsPerGame: number;
+};
+
+type Game = {
+  id: string;
+  name: string;
+  gameType: string | null;
+  totalPlayers: number;
+  completedAt: string | null;
+};
+
+// Default point distribution for preview (Fibonacci-based system)
+const defaultPointDistribution = [
+  { position: 1, points: 5 },
+  { position: 2, points: 3 },
+  { position: 3, points: 2 },
+  { position: 4, points: 1 },
+  { position: 5, points: -1 },
+  { position: 6, points: -2 },
+  { position: 7, points: -3 },
+  { position: 8, points: -5 },
 ];
 
 const getRankIcon = (rank: number) => {
@@ -97,9 +84,229 @@ const getFormTrend = (recentForm: number[]) => {
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"leaderboard" | "add-game" | "add-player">("leaderboard");
   const [newPlayerName, setNewPlayerName] = useState("");
+  
+  // State for data
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [stats, setStats] = useState<Stats>({ totalPlayers: 0, totalGames: 0, topScore: 0, avgPointsPerGame: 0 });
+  const [recentGames, setRecentGames] = useState<Game[]>([]);
+  const [pointDistribution, setPointDistribution] = useState(defaultPointDistribution);
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch data
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const [playersRes, statsRes, gamesRes] = await Promise.all([
+        fetch('/api/leaderboard'),
+        fetch('/api/stats'),
+        fetch('/api/games?limit=5')
+      ]);
+      
+      if (!playersRes.ok || !statsRes.ok || !gamesRes.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      
+      const [playersData, statsData, gamesData] = await Promise.all([
+        playersRes.json(),
+        statsRes.json(),
+        gamesRes.json()
+      ]);
+      
+      setPlayers(playersData);
+      setStats(statsData);
+      setRecentGames(gamesData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Add player
+  const addPlayer = async () => {
+    if (!newPlayerName.trim()) return;
+    
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('/api/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newPlayerName.trim() })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add player');
+      }
+      
+      setNewPlayerName("");
+      await fetchData(); // Refresh data
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add player');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Record game
+  const recordGame = async (gameName: string, gameType: string, results: GameResult[]) => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('/api/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: gameName,
+          gameType,
+          results
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to record game');
+      }
+      
+      await fetchData(); // Refresh data
+      setActiveTab("leaderboard"); // Switch to leaderboard
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to record game');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Update point distribution preview with symmetric system
+  const updatePointDistribution = (totalPlayers: number) => {
+    if (totalPlayers > 0) {
+      const newDistribution = generateSymmetricPointDistribution(totalPlayers);
+      setPointDistribution(newDistribution);
+    }
+  };
+  
+  // Generate symmetric point distribution (matches backend logic)
+  const generateSymmetricPointDistribution = (totalPlayers: number) => {
+    if (totalPlayers <= 0) return [];
+    
+    // For 1 player, they get 0 points (they're the median)
+    if (totalPlayers === 1) return [{ position: 1, points: 0 }];
+    
+    // Generate adjusted Fibonacci sequence (skip first consecutive 1)
+    // Standard Fibonacci: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144...
+    // Adjusted Fibonacci: 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144...
+    const generateAdjustedFibonacci = (count: number): number[] => {
+      if (count <= 0) return [];
+      if (count === 1) return [1];
+      
+      const fib = [1, 2]; // Start with 1, 2 instead of 1, 1
+      
+      for (let i = 2; i < count; i++) {
+        fib.push(fib[i - 1] + fib[i - 2]);
+      }
+      
+      return fib;
+    };
+    
+    const points: number[] = [];
+    
+    if (totalPlayers % 2 === 1) {
+      // Odd number of players: middle player gets exactly 0 (true middle)
+      const middleIndex = Math.floor(totalPlayers / 2);
+      const halfPlayers = middleIndex;
+      
+      if (halfPlayers === 0) {
+        // Only 1 player
+        points.push(0);
+      } else {
+        // Generate Fibonacci sequence for the half
+        const fibSequence = generateAdjustedFibonacci(halfPlayers);
+        
+        // Build the complete array: positive half + middle (0) + negative half
+        const positiveFib = [...fibSequence].reverse(); // First position gets highest Fibonacci value
+        const negativeFib = [...fibSequence].map(f => -f); // Mirror: closest to middle gets smallest negative values
+        
+        points.push(...positiveFib); // Positive half
+        points.push(0); // Middle position
+        points.push(...negativeFib); // Negative half
+      }
+      
+    } else {
+      // Even number of players: invisible "true middle" between two middle players
+      // Two middle players get +1 and -1
+      const halfPlayers = totalPlayers / 2;
+      
+      if (halfPlayers === 1) {
+        // Only 2 players
+        points.push(1, -1);
+      } else {
+        // Generate Fibonacci sequence for the half
+        const fibSequence = generateAdjustedFibonacci(halfPlayers);
+        
+        // Ensure the innermost values are 1 and -1
+        fibSequence[fibSequence.length - 1] = 1;
+        
+        // Build the complete array: positive half + negative half
+        const positiveFib = [...fibSequence].reverse(); // First position gets highest Fibonacci value
+        const negativeFib = [...fibSequence].map(f => -f); // Mirror: closest to middle gets smallest negative values
+        
+        points.push(...positiveFib); // Positive half
+        points.push(...negativeFib); // Negative half
+      }
+    }
+    
+    return points.map((pts, index) => ({
+      position: index + 1,
+      points: pts
+    }));
+  };
+  
+  // Load data on component mount
+  useEffect(() => {
+    fetchData();
+  }, []);
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-background">
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-destructive/10 border-b border-destructive/20 p-4">
+          <div className="max-w-7xl mx-auto flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <span className="text-sm text-destructive">{error}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setError(null);
+                fetchData();
+              }}
+              className="ml-auto"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <header className="bg-background border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -112,7 +319,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground hidden sm:inline">
-                {mockPlayers.length} Players
+                {stats.totalPlayers} Players
               </span>
               <ThemeToggle />
             </div>
@@ -171,7 +378,7 @@ export default function HomePage() {
                     <Users className="h-5 w-5 text-blue-500" />
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Players</p>
-                      <p className="text-2xl font-bold">{mockPlayers.length}</p>
+                      <p className="text-2xl font-bold">{stats.totalPlayers}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -183,7 +390,7 @@ export default function HomePage() {
                     <Target className="h-5 w-5 text-green-500" />
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Total Games</p>
-                      <p className="text-2xl font-bold">15</p>
+                      <p className="text-2xl font-bold">{stats.totalGames}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -195,7 +402,7 @@ export default function HomePage() {
                     <Trophy className="h-5 w-5 text-yellow-500" />
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Top Score</p>
-                      <p className="text-2xl font-bold">{mockPlayers[0]?.totalPoints || 0}</p>
+                      <p className="text-2xl font-bold">{stats.topScore}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -207,7 +414,7 @@ export default function HomePage() {
                     <TrendingUp className="h-5 w-5 text-purple-500" />
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Avg/Game</p>
-                      <p className="text-2xl font-bold">16.2</p>
+                      <p className="text-2xl font-bold">{stats.avgPointsPerGame}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -228,51 +435,59 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="space-y-2 p-6 pt-0">
-                    {mockPlayers.map((player, index) => {
-                      const rank = index + 1;
-                      const formTrend = getFormTrend(player.recentForm);
-                      
-                      return (
-                        <div
-                          key={player.id}
-                          className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                          {/* Rank Icon */}
-                          <div className="flex-shrink-0">
-                            {getRankIcon(rank)}
-                          </div>
+                    {players.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No players yet!</p>
+                        <p className="text-sm mt-2">Add some players to get started</p>
+                      </div>
+                    ) : (
+                      players.map((player: Player, index: number) => {
+                        const rank = index + 1;
+                        const formTrend = getFormTrend(player.recentForm);
+                        
+                        return (
+                          <div
+                            key={player.id}
+                            className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          >
+                            {/* Rank Icon */}
+                            <div className="flex-shrink-0">
+                              {getRankIcon(rank)}
+                            </div>
 
-                          {/* Player Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-lg truncate">{player.name}</h3>
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getRankBadgeClass(rank)}`}>
-                                #{rank}
-                              </span>
+                            {/* Player Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-lg truncate">{player.name}</h3>
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getRankBadgeClass(rank)}`}>
+                                  #{rank}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span className="font-mono font-bold text-foreground">{player.totalPoints} pts</span>
+                                <span>{player.gamesPlayed} games</span>
+                                <span>{player.wins}W</span>
+                                <span className="flex items-center gap-1">
+                                  {formTrend === "up" && <TrendingUp className="h-3 w-3 text-green-500" />}
+                                  {formTrend === "down" && <div className="h-3 w-3 text-red-500 transform rotate-180"><TrendingUp /></div>}
+                                  <span className="hidden sm:inline">Form</span>
+                                </span>
+                              </div>
                             </div>
-                            
-                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                              <span className="font-mono font-bold text-foreground">{player.totalPoints} pts</span>
-                              <span>{player.gamesPlayed} games</span>
-                              <span>{player.wins}W</span>
-                              <span className="flex items-center gap-1">
-                                {formTrend === "up" && <TrendingUp className="h-3 w-3 text-green-500" />}
-                                {formTrend === "down" && <div className="h-3 w-3 text-red-500 transform rotate-180"><TrendingUp /></div>}
-                                <span className="hidden sm:inline">Form</span>
-                              </span>
-                            </div>
-                          </div>
 
-                          {/* Stats Panel (Desktop) */}
-                          <div className="hidden md:flex flex-col items-end text-sm">
-                            <div className="text-right">
-                              <div className="font-mono text-foreground">{player.averagePoints.toFixed(1)} avg</div>
-                              <div className="text-gray-600 dark:text-gray-400">{player.winRate.toFixed(0)}% win rate</div>
+                            {/* Stats Panel (Desktop) */}
+                            <div className="hidden md:flex flex-col items-end text-sm">
+                              <div className="text-right">
+                                <div className="font-mono text-foreground">{player.averagePoints.toFixed(1)} avg</div>
+                                <div className="text-gray-600 dark:text-gray-400">{player.winRate.toFixed(0)}% win rate</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -280,21 +495,12 @@ export default function HomePage() {
 
             {/* Add Game Form */}
             {activeTab === "add-game" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Record Game Results</CardTitle>
-                  <CardDescription>
-                    Add players in order of their finishing position (1st to last)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Game recording form would go here</p>
-                    <p className="text-sm mt-2">Connect to database to enable functionality</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <GameResultForm
+                players={players}
+                onSubmit={recordGame}
+                onPointPreview={updatePointDistribution}
+                isSubmitting={isSubmitting}
+              />
             )}
 
             {/* Add Player Form */}
@@ -313,11 +519,25 @@ export default function HomePage() {
                       placeholder="Enter player name"
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addPlayer()}
                     />
                   </div>
-                  <Button className="w-full" disabled={!newPlayerName.trim()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Player
+                  <Button 
+                    className="w-full" 
+                    disabled={!newPlayerName.trim() || isSubmitting}
+                    onClick={addPlayer}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Player
+                      </>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
@@ -327,35 +547,10 @@ export default function HomePage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Point Distribution */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Point Distribution</CardTitle>
-                <CardDescription>
-                  F1-style points for 6 players
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {pointDistribution.map(({ position, points }) => (
-                    <div
-                      key={position}
-                      className="flex items-center justify-between p-2 rounded-lg border bg-card"
-                    >
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getRankBadgeClass(position)}`}>
-                        #{position}
-                      </span>
-                      <span className="font-mono text-sm font-semibold">
-                        {points}pt{points !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
-                  Dynamic point system scales with player count
-                </div>
-              </CardContent>
-            </Card>
+            <PointDistributionPreview 
+              totalPlayers={pointDistribution.length} 
+              pointDistribution={pointDistribution} 
+            />
 
             {/* Recent Activity */}
             <Card>
@@ -364,21 +559,24 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="text-sm">
-                    <div className="font-medium">Friday Night Poker</div>
-                    <div className="text-gray-600 dark:text-gray-400">Alex Chen won • 6 players</div>
-                    <div className="text-xs text-gray-500">2 hours ago</div>
-                  </div>
-                  <div className="text-sm">
-                    <div className="font-medium">Blackjack Tournament</div>
-                    <div className="text-gray-600 dark:text-gray-400">Maria Rodriguez won • 4 players</div>
-                    <div className="text-xs text-gray-500">1 day ago</div>
-                  </div>
-                  <div className="text-sm">
-                    <div className="font-medium">Texas Hold'em</div>
-                    <div className="text-gray-600 dark:text-gray-400">Jordan Kim won • 5 players</div>
-                    <div className="text-xs text-gray-500">3 days ago</div>
-                  </div>
+                  {recentGames.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">
+                      <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No games recorded yet</p>
+                    </div>
+                  ) : (
+                    recentGames.map((game) => (
+                      <div key={game.id} className="text-sm">
+                        <div className="font-medium">{game.name}</div>
+                        <div className="text-gray-600 dark:text-gray-400">
+                          {game.gameType && `${game.gameType} • `}{game.totalPlayers} players
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {game.completedAt ? new Date(game.completedAt).toLocaleDateString() : 'Recently completed'}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

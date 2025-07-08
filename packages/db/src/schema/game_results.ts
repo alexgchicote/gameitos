@@ -9,5 +9,6 @@ export const gameResults = pgTable('game_results', {
   playerId: uuid('player_id').references(() => players.id).notNull(),
   position: integer('position').notNull(),    // 1st, 2nd, 3rd, etc.
   pointsAwarded: integer('points_awarded').notNull(),
-  createdAt: timestamp('created_at').defaultNow()
+  positionFromMedian: integer('position_from_median'), // Position relative to median: +3, +2, +1, 0, -1, -2, -3
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow()
 });

@@ -1,6 +1,7 @@
-import { eq, like } from 'drizzle-orm';
+import { eq, like, sql } from 'drizzle-orm';
 import { db } from '../index';
 import { players } from '../schema';
+import postgres from 'postgres';
 
 export type CreatePlayerInput = {
   name: string;
@@ -8,18 +9,28 @@ export type CreatePlayerInput = {
 
 // Create a new player
 export async function createPlayer(input: CreatePlayerInput) {
-  const [player] = await db
-    .insert(players)
-    .values({
-      name: input.name,
-      totalPoints: 0,
-      gamesPlayed: 0,
-      wins: 0,
-      podiums: 0,
-    })
-    .returning();
-
-  return player;
+  const connectionString = process.env.DATABASE_URL;
+  
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
+  const client = postgres(connectionString);
+  
+  try {
+    const result = await client`
+      INSERT INTO players (name) 
+      VALUES (${input.name}) 
+      RETURNING *
+    `;
+    
+    await client.end();
+    return result[0];
+  } catch (error) {
+    await client.end();
+    console.error('Database error:', error);
+    throw error;
+  }
 }
 
 // Get all players

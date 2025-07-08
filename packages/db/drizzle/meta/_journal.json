@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1751924849623,
+      "tag": "0000_medical_justice",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1751932032321,
+      "tag": "0001_supreme_elektra",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751932582786,
+      "tag": "0002_dark_thunderball",
+      "breakpoints": true
+    }
+  ]
+}

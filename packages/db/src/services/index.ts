@@ -1,46 +1,97 @@
-// Point calculation system inspired by F1
+// Point calculation system with symmetric distribution around median
 export function calculatePointsForPosition(position: number, totalPlayers: number): number {
   // Ensure we have valid inputs
   if (position < 1 || position > totalPlayers || totalPlayers < 1) {
     return 0;
   }
 
-  // Base point system inspired by F1 but scaled for any number of players
-  const pointDistribution = generatePointDistribution(totalPlayers);
+  // Generate symmetric point distribution
+  const pointDistribution = generateSymmetricPointDistribution(totalPlayers);
   return pointDistribution[position - 1] || 0;
 }
 
-function generatePointDistribution(totalPlayers: number): number[] {
+// Calculate position from median (distance from median position)
+export function calculatePositionFromMedian(position: number, totalPlayers: number): number {
+  // Position from median should match the Fibonacci point values exactly
+  // since the Fibonacci sequence represents the distance from median in the correct direction
+  return calculatePointsForPosition(position, totalPlayers);
+}
+
+function generateSymmetricPointDistribution(totalPlayers: number): number[] {
   if (totalPlayers <= 0) return [];
   
-  // F1-inspired base points for top positions
-  const basePoints = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+  // For 1 player, they get 0 points (they're the median)
+  if (totalPlayers === 1) return [0];
   
-  if (totalPlayers <= 10) {
-    // For 10 or fewer players, use F1 system directly
-    return basePoints.slice(0, totalPlayers);
-  }
+  // Generate adjusted Fibonacci sequence (skip first consecutive 1)
+  // Standard Fibonacci: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144...
+  // Adjusted Fibonacci: 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144...
+  const generateAdjustedFibonacci = (count: number): number[] => {
+    if (count <= 0) return [];
+    if (count === 1) return [1];
+    
+    const fib = [1, 2]; // Start with 1, 2 instead of 1, 1
+    
+    for (let i = 2; i < count; i++) {
+      fib.push(fib[i - 1] + fib[i - 2]);
+    }
+    
+    return fib;
+  };
   
-  // For more than 10 players, extend the system
-  const points: number[] = [...basePoints];
+  const points: number[] = [];
   
-  // Add diminishing points for positions 11+
-  for (let i = 11; i <= totalPlayers; i++) {
-    // Gradually decrease points, ensuring last place gets at least 1 point
-    const remainingPositions = totalPlayers - 10;
-    const positionFromEleven = i - 10;
-    const pointValue = Math.max(1, Math.ceil((remainingPositions - positionFromEleven + 1) * 0.5));
-    points.push(pointValue);
-  }
+      if (totalPlayers % 2 === 1) {
+      // Odd number of players: middle player gets exactly 0 (true middle)
+      const middleIndex = Math.floor(totalPlayers / 2);
+      const halfPlayers = middleIndex;
+      
+      if (halfPlayers === 0) {
+        // Only 1 player
+        points.push(0);
+      } else {
+        // Generate Fibonacci sequence for the half
+        const fibSequence = generateAdjustedFibonacci(halfPlayers);
+        
+        // Build the complete array: positive half + middle (0) + negative half
+        // Fibonacci increases as you move away from middle
+        const positiveFib = [...fibSequence].reverse(); // First position gets highest Fibonacci value
+        const negativeFib = [...fibSequence].map(f => -f); // Mirror: closest to middle gets smallest negative values
+        
+        points.push(...positiveFib); // Positive half
+        points.push(0); // Middle position
+        points.push(...negativeFib); // Negative half (already in correct order: -1, -2, -3, -5, etc.)
+      }
+      
+    } else {
+      // Even number of players: invisible "true middle" between two middle players
+      const halfPlayers = totalPlayers / 2;
+      
+      if (halfPlayers === 1) {
+        // Only 2 players
+        points.push(1, -1);
+      } else {
+        // Generate Fibonacci sequence for the half
+        const fibSequence = generateAdjustedFibonacci(halfPlayers);
+        
+        // Build the complete array: positive half + negative half
+        const positiveFib = [...fibSequence].reverse(); // First position gets highest Fibonacci value
+        const negativeFib = [...fibSequence].map(f => -f); // Mirror: closest to middle gets smallest negative values
+        
+        points.push(...positiveFib); // Positive half
+        points.push(...negativeFib); // Negative half
+      }
+    }
   
   return points;
 }
 
 // Utility to get point distribution preview
-export function getPointDistributionPreview(totalPlayers: number): Array<{position: number, points: number}> {
-  const distribution = generatePointDistribution(totalPlayers);
+export function getPointDistributionPreview(totalPlayers: number): Array<{position: number, points: number, positionFromMedian: number}> {
+  const distribution = generateSymmetricPointDistribution(totalPlayers);
   return distribution.map((points, index) => ({
     position: index + 1,
-    points
+    points,
+    positionFromMedian: calculatePositionFromMedian(index + 1, totalPlayers)
   }));
 } 

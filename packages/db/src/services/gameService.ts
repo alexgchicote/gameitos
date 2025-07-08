@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../index';
 import { games, players, gameResults } from '../schema';
-import { calculatePointsForPosition } from './index';
+import { calculatePointsForPosition, calculatePositionFromMedian } from './index';
 
 export type CreateGameInput = {
   name: string;
@@ -70,6 +70,7 @@ export async function completeGame(input: CompleteGameInput) {
     playerId: result.playerId,
     position: result.position,
     pointsAwarded: calculatePointsForPosition(result.position, game.totalPlayers),
+    positionFromMedian: calculatePositionFromMedian(result.position, game.totalPlayers),
   }));
 
   // Insert game results and update game status
@@ -120,6 +121,7 @@ export async function getGameWithResults(gameId: string) {
       id: gameResults.id,
       position: gameResults.position,
       pointsAwarded: gameResults.pointsAwarded,
+      positionFromMedian: gameResults.positionFromMedian,
       player: {
         id: players.id,
         name: players.name,
