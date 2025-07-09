@@ -1,6 +1,6 @@
 import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { players, games, gameResults } from '../schema';
+import { players, games, gameMatches, gameResults } from '../schema';
 
 export type LeaderboardPlayer = {
   id: string;
@@ -78,9 +78,9 @@ export async function getPlayerRecentForm(playerId: string, gameCount: number = 
       position: gameResults.position,
     })
     .from(gameResults)
-    .innerJoin(games, eq(gameResults.gameId, games.id))
+    .innerJoin(gameMatches, eq(gameResults.gameMatchId, gameMatches.id))
     .where(eq(gameResults.playerId, playerId))
-    .orderBy(desc(games.completedAt))
+    .orderBy(desc(gameMatches.completedAt))
     .limit(gameCount);
 
   return recentResults.map(r => r.position);
@@ -100,18 +100,19 @@ export async function getPlayerStats(playerId: string) {
   // Get recent games
   const recentGames = await db
     .select({
-      gameId: gameResults.gameId,
+      gameMatchId: gameResults.gameMatchId,
       gameName: games.name,
-      gameType: games.gameType,
+      matchName: gameMatches.matchName,
       position: gameResults.position,
       pointsAwarded: gameResults.pointsAwarded,
-      totalPlayers: games.totalPlayers,
-      completedAt: games.completedAt,
+      totalPlayers: gameMatches.totalPlayers,
+      completedAt: gameMatches.completedAt,
     })
     .from(gameResults)
-    .innerJoin(games, eq(gameResults.gameId, games.id))
+    .innerJoin(gameMatches, eq(gameResults.gameMatchId, gameMatches.id))
+    .innerJoin(games, eq(gameMatches.gameId, games.id))
     .where(eq(gameResults.playerId, playerId))
-    .orderBy(desc(games.completedAt))
+    .orderBy(desc(gameMatches.completedAt))
     .limit(10);
 
   // Calculate position statistics
@@ -135,8 +136,8 @@ export async function getPlayerStats(playerId: string) {
   };
 }
 
-// Get game type specific leaderboard
-export async function getGameTypeLeaderboard(gameType: string, limit: number = 20) {
+// Get game specific leaderboard
+export async function getGameLeaderboard(gameId: string, limit: number = 20) {
   const results = await db
     .select({
       playerId: gameResults.playerId,
@@ -147,9 +148,10 @@ export async function getGameTypeLeaderboard(gameType: string, limit: number = 2
       podiums: sql<number>`sum(case when ${gameResults.position} <= 3 then 1 else 0 end)`,
     })
     .from(gameResults)
-    .innerJoin(games, eq(gameResults.gameId, games.id))
+    .innerJoin(gameMatches, eq(gameResults.gameMatchId, gameMatches.id))
+    .innerJoin(games, eq(gameMatches.gameId, games.id))
     .innerJoin(players, eq(gameResults.playerId, players.id))
-    .where(eq(games.gameType, gameType))
+    .where(eq(games.id, gameId))
     .groupBy(gameResults.playerId, players.name)
     .orderBy(desc(sql`sum(${gameResults.pointsAwarded})`))
     .limit(limit);

@@ -1,53 +1,112 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { games, players, gameResults } from '../schema';
+import { games, gameMatches, gameTypes, players, gameResults } from '../schema';
 import { calculatePointsForPosition, calculatePositionFromMedian } from './index';
 
-export type CreateGameInput = {
-  name: string;
-  gameType?: string;
+export type CreateGameMatchInput = {
+  gameId: string; // References the game definition (Kittens, Uno, etc.)
+  matchName?: string; // Optional match name like "Friday Night Session"
   playerIds: string[];
 };
 
-export type GameResultInput = {
-  playerId: string;
-  position: number;
+export type CompleteGameMatchInput = {
+  gameMatchId: string;
+  results: {
+    playerId: string;
+    position: number;
+  }[];
 };
 
-export type CompleteGameInput = {
-  gameId: string;
-  results: GameResultInput[];
+export type CreateGameInput = {
+  name: string;
+  gameTypeId: string;
+  description?: string;
+  minPlayers?: number;
+  maxPlayers?: number | null;
+  isActive?: boolean;
 };
 
-// Create a new game
+// Create a new game definition
 export async function createGame(input: CreateGameInput) {
   const [game] = await db
     .insert(games)
     .values({
       name: input.name,
-      gameType: input.gameType,
-      totalPlayers: input.playerIds.length,
-      status: 'in_progress',
+      gameTypeId: input.gameTypeId,
+      description: input.description,
+      minPlayers: input.minPlayers || 2,
+      maxPlayers: input.maxPlayers,
+      isActive: input.isActive !== false ? 'true' : 'false',
     })
     .returning();
 
   return game;
 }
 
-// Complete a game with results
-export async function completeGame(input: CompleteGameInput) {
-  const [game] = await db
-    .select()
+// Get all available games for dropdown
+export async function getAvailableGames() {
+  return await db
+    .select({
+      id: games.id,
+      name: games.name,
+      gameTypeId: gameTypes.id,
+      gameTypeName: gameTypes.name,
+      minPlayers: games.minPlayers,
+      maxPlayers: games.maxPlayers,
+    })
     .from(games)
-    .where(eq(games.id, input.gameId));
+    .innerJoin(gameTypes, eq(games.gameTypeId, gameTypes.id))
+    .where(eq(games.isActive, 'true'))
+    .orderBy(games.name);
+}
 
-  if (!game) {
-    throw new Error('Game not found');
+// Get players who have played a specific game, ordered by last game
+export async function getPlayersForGame(gameId: string) {
+  const playersInGame = await db
+    .select({
+      id: players.id,
+      name: players.name,
+      lastPlayed: sql<Date>`MAX(${gameMatches.completedAt})`.as('lastPlayed'),
+    })
+    .from(players)
+    .innerJoin(gameResults, eq(gameResults.playerId, players.id))
+    .innerJoin(gameMatches, eq(gameResults.gameMatchId, gameMatches.id))
+    .where(eq(gameMatches.gameId, gameId))
+    .groupBy(players.id, players.name)
+    .orderBy(desc(sql`MAX(${gameMatches.completedAt})`));
+
+  return playersInGame;
+}
+
+// Create a new game match
+export async function createGameMatch(input: CreateGameMatchInput) {
+  const [gameMatch] = await db
+    .insert(gameMatches)
+    .values({
+      gameId: input.gameId,
+      matchName: input.matchName,
+      totalPlayers: input.playerIds.length,
+      status: 'in_progress',
+    })
+    .returning();
+
+  return gameMatch;
+}
+
+// Complete a game match with results
+export async function completeGameMatch(input: CompleteGameMatchInput) {
+  const [gameMatch] = await db
+    .select()
+    .from(gameMatches)
+    .where(eq(gameMatches.id, input.gameMatchId));
+
+  if (!gameMatch) {
+    throw new Error('Game match not found');
   }
 
   // Validate results
-  if (input.results.length !== game.totalPlayers) {
-    throw new Error(`Expected ${game.totalPlayers} results, got ${input.results.length}`);
+  if (input.results.length !== gameMatch.totalPlayers) {
+    throw new Error(`Expected ${gameMatch.totalPlayers} results, got ${input.results.length}`);
   }
 
   // Check for duplicate positions
@@ -66,11 +125,11 @@ export async function completeGame(input: CompleteGameInput) {
 
   // Calculate points for each result
   const resultsWithPoints = input.results.map(result => ({
-    gameId: input.gameId,
+    gameMatchId: input.gameMatchId,
     playerId: result.playerId,
     position: result.position,
-    pointsAwarded: calculatePointsForPosition(result.position, game.totalPlayers),
-    positionFromMedian: calculatePositionFromMedian(result.position, game.totalPlayers),
+    pointsAwarded: calculatePointsForPosition(result.position, gameMatch.totalPlayers),
+    positionFromMedian: calculatePositionFromMedian(result.position, gameMatch.totalPlayers),
   }));
 
   // Insert game results and update game status
@@ -78,14 +137,14 @@ export async function completeGame(input: CompleteGameInput) {
     // Insert game results
     await tx.insert(gameResults).values(resultsWithPoints);
 
-    // Update game status
+    // Update game match status
     await tx
-      .update(games)
+      .update(gameMatches)
       .set({
         status: 'completed',
         completedAt: new Date(),
       })
-      .where(eq(games.id, input.gameId));
+      .where(eq(gameMatches.id, input.gameMatchId));
 
     // Update player statistics
     for (const result of resultsWithPoints) {
@@ -102,18 +161,32 @@ export async function completeGame(input: CompleteGameInput) {
     }
   });
 
-  return await getGameWithResults(input.gameId);
+  return await getGameMatchWithResults(input.gameMatchId);
 }
 
-// Get game with results
-export async function getGameWithResults(gameId: string) {
-  const game = await db
-    .select()
-    .from(games)
-    .where(eq(games.id, gameId));
+// Get game match with results
+export async function getGameMatchWithResults(gameMatchId: string) {
+  const gameMatch = await db
+    .select({
+      id: gameMatches.id,
+      matchName: gameMatches.matchName,
+      totalPlayers: gameMatches.totalPlayers,
+      status: gameMatches.status,
+      startedAt: gameMatches.startedAt,
+      completedAt: gameMatches.completedAt,
+      createdAt: gameMatches.createdAt,
+      gameId: games.id,
+      gameName: games.name,
+      gameTypeId: gameTypes.id,
+      gameTypeName: gameTypes.name,
+    })
+    .from(gameMatches)
+    .innerJoin(games, eq(gameMatches.gameId, games.id))
+    .innerJoin(gameTypes, eq(games.gameTypeId, gameTypes.id))
+    .where(eq(gameMatches.id, gameMatchId));
 
-  if (!game.length) {
-    throw new Error('Game not found');
+  if (!gameMatch.length) {
+    throw new Error('Game match not found');
   }
 
   const results = await db
@@ -129,21 +202,67 @@ export async function getGameWithResults(gameId: string) {
     })
     .from(gameResults)
     .innerJoin(players, eq(gameResults.playerId, players.id))
-    .where(eq(gameResults.gameId, gameId))
+    .where(eq(gameResults.gameMatchId, gameMatchId))
     .orderBy(gameResults.position);
 
   return {
-    ...game[0],
+    ...gameMatch[0],
     results,
   };
 }
 
-// Get recent games
-export async function getRecentGames(limit: number = 10) {
-  return await db
-    .select()
-    .from(games)
-    .where(eq(games.status, 'completed'))
-    .orderBy(desc(games.completedAt))
+// Get recent game matches
+export async function getRecentGameMatches(limit: number = 10) {
+  const recentMatches = await db
+    .select({
+      id: gameMatches.id,
+      matchName: gameMatches.matchName,
+      totalPlayers: gameMatches.totalPlayers,
+      status: gameMatches.status,
+      startedAt: gameMatches.startedAt,
+      completedAt: gameMatches.completedAt,
+      createdAt: gameMatches.createdAt,
+      gameId: games.id,
+      gameName: games.name,
+      gameTypeId: gameTypes.id,
+      gameTypeName: gameTypes.name,
+    })
+    .from(gameMatches)
+    .innerJoin(games, eq(gameMatches.gameId, games.id))
+    .innerJoin(gameTypes, eq(games.gameTypeId, gameTypes.id))
+    .where(eq(gameMatches.status, 'completed'))
+    .orderBy(desc(gameMatches.completedAt))
     .limit(limit);
-} 
+
+  // Get winner and last place for each match
+  const matchesWithResults = await Promise.all(
+    recentMatches.map(async (match) => {
+      const results = await db
+        .select({
+          position: gameResults.position,
+          player: {
+            id: players.id,
+            name: players.name,
+          },
+        })
+        .from(gameResults)
+        .innerJoin(players, eq(gameResults.playerId, players.id))
+        .where(eq(gameResults.gameMatchId, match.id))
+        .orderBy(gameResults.position);
+
+      const winner = results.find(r => r.position === 1);
+      const lastPlace = results.find(r => r.position === match.totalPlayers);
+
+      return {
+        ...match,
+        winner: winner ? winner.player : null,
+        lastPlace: lastPlace ? lastPlace.player : null,
+      };
+    })
+  );
+
+  return matchesWithResults;
+}
+
+// Backward compatibility function
+export const getRecentGames = getRecentGameMatches; 

@@ -22,6 +22,20 @@
       "when": 1751932582786,
       "tag": "0002_dark_thunderball",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1752065451636,
+      "tag": "0003_certain_siren",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1752086376441,
+      "tag": "0004_condemned_goliath",
+      "breakpoints": true
     }
   ]
 }
