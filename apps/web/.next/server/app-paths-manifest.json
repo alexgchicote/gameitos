@@ -1,5 +1,11 @@
 {
-  "/api/leaderboard/route": "app/api/leaderboard/route.js",
+  "/api/game-types/route": "app/api/game-types/route.js",
+  "/api/games/available/route": "app/api/games/available/route.js",
+  "/api/games/create/route": "app/api/games/create/route.js",
   "/api/games/route": "app/api/games/route.js",
-  "/api/stats/route": "app/api/stats/route.js"
+  "/api/leaderboard/route": "app/api/leaderboard/route.js",
+  "/api/players/route": "app/api/players/route.js",
+  "/api/stats/route": "app/api/stats/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js"
 }

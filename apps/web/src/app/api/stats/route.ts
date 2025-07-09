@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getAllPlayers, getRecentGames } from '@gameitos/db';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const [players, games] = await Promise.all([
       getAllPlayers(),

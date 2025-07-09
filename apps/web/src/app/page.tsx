@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trophy, Medal, Award, Plus, Users, Target, TrendingUp, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Trophy, Medal, Award, Plus, Users, Target, TrendingUp, Loader2, AlertCircle, RefreshCw, ChevronsDown } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { GameResultForm } from "@/components/leaderboard/GameResultForm";
 import { PointDistributionPreview } from "@/components/leaderboard/PointDistributionPreview";
@@ -23,9 +23,16 @@ type Player = {
   recentForm: number[];
 };
 
-type GameResult = {
-  playerId: string;
-  position: number;
+type Match = {
+  id: string;
+  name: string;
+  matchName: string | null;
+  gameType: string | null;
+  totalPlayers: number;
+  status: string;
+  completedAt: string | null;
+  winner: { id: string; name: string } | null;
+  lastPlace: { id: string; name: string } | null;
 };
 
 type Stats = {
@@ -35,12 +42,9 @@ type Stats = {
   avgPointsPerGame: number;
 };
 
-type Game = {
-  id: string;
-  name: string;
-  gameType: string | null;
-  totalPlayers: number;
-  completedAt: string | null;
+type MatchResult = {
+  playerId: string;
+  position: number;
 };
 
 // Default point distribution for preview (Fibonacci-based system)
@@ -88,7 +92,7 @@ export default function HomePage() {
   // State for data
   const [players, setPlayers] = useState<Player[]>([]);
   const [stats, setStats] = useState<Stats>({ totalPlayers: 0, totalGames: 0, topScore: 0, avgPointsPerGame: 0 });
-  const [recentGames, setRecentGames] = useState<Game[]>([]);
+  const [recentMatches, setRecentMatches] = useState<Match[]>([]);
   const [pointDistribution, setPointDistribution] = useState(defaultPointDistribution);
   
   // Loading states
@@ -120,7 +124,7 @@ export default function HomePage() {
       
       setPlayers(playersData);
       setStats(statsData);
-      setRecentGames(gamesData);
+      setRecentMatches(gamesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -155,15 +159,37 @@ export default function HomePage() {
   };
   
   // Record game
-  const recordGame = async (gameName: string, gameType: string, results: GameResult[]) => {
+  const recordGame = async (gameId: string, matchName: string | undefined, results: MatchResult[], newGameName?: string, newGameTypeId?: string) => {
     try {
       setIsSubmitting(true);
+      
+      let actualGameId = gameId;
+      
+      // If creating a new game, create it first
+      if (gameId === "CREATE_NEW" && newGameName) {
+        const createResponse = await fetch('/api/games/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name: newGameName, 
+            gameTypeId: newGameTypeId 
+          })
+        });
+        
+        if (!createResponse.ok) {
+          throw new Error('Failed to create new game');
+        }
+        
+        const newGame = await createResponse.json();
+        actualGameId = newGame.id;
+      }
+      
       const response = await fetch('/api/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: gameName,
-          gameType,
+          gameId: actualGameId,
+          matchName,
           results
         })
       });
@@ -370,8 +396,47 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Desktop Navigation */}
+            <div className="hidden md:block">
+              <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveTab("leaderboard")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === "leaderboard"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Trophy className="h-4 w-4" />
+                  Leaderboard
+                </button>
+                <button
+                  onClick={() => setActiveTab("add-game")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === "add-game"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Target className="h-4 w-4" />
+                  Record Game
+                </button>
+                <button
+                  onClick={() => setActiveTab("add-player")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === "add-player"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  Add Player
+                </button>
+              </div>
+            </div>
+
             {/* Stats Overview */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
@@ -391,30 +456,6 @@ export default function HomePage() {
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Total Games</p>
                       <p className="text-2xl font-bold">{stats.totalGames}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-yellow-500" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Top Score</p>
-                      <p className="text-2xl font-bold">{stats.topScore}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-purple-500" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Avg/Game</p>
-                      <p className="text-2xl font-bold">{stats.avgPointsPerGame}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -555,24 +596,49 @@ export default function HomePage() {
             {/* Recent Activity */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Recent Games</CardTitle>
+                <CardTitle className="text-lg">Recent Matches</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentGames.length === 0 ? (
+                  {recentMatches.length === 0 ? (
                     <div className="text-center py-4 text-gray-500">
                       <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No games recorded yet</p>
+                      <p className="text-sm">No matches recorded yet</p>
                     </div>
                   ) : (
-                    recentGames.map((game) => (
-                      <div key={game.id} className="text-sm">
-                        <div className="font-medium">{game.name}</div>
-                        <div className="text-gray-600 dark:text-gray-400">
-                          {game.gameType && `${game.gameType} • `}{game.totalPlayers} players
+                    recentMatches.map((match) => (
+                      <div key={match.id} className="text-sm border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                        <div className="font-medium mb-2">
+                          {match.name}
+                          {match.matchName && (
+                            <span className="font-normal text-gray-600 dark:text-gray-400"> - {match.matchName}</span>
+                          )}
                         </div>
+                        <div className="text-gray-600 dark:text-gray-400 mb-2">
+                          {match.gameType && `${match.gameType}`}
+                        </div>
+                        <div className="text-gray-600 dark:text-gray-400 mb-2">
+                          {match.totalPlayers} players
+                        </div>
+                        
+                        {/* Winner and Last Place */}
+                        <div className="flex flex-col gap-1 mb-2">
+                          {match.winner && (
+                            <div className="flex items-center gap-1">
+                              <Trophy className="h-4 w-4 text-yellow-500" />
+                              <span className="text-xs font-medium">{match.winner.name}</span>
+                            </div>
+                          )}
+                          {match.lastPlace && (
+                            <div className="flex items-center gap-1">
+                              <ChevronsDown className="h-4 w-4 text-red-500" />
+                              <span className="text-xs font-medium">{match.lastPlace.name}</span>
+                            </div>
+                          )}
+                        </div>
+                        
                         <div className="text-xs text-gray-500">
-                          {game.completedAt ? new Date(game.completedAt).toLocaleDateString() : 'Recently completed'}
+                          {match.completedAt ? new Date(match.completedAt).toLocaleDateString() : 'Recently completed'}
                         </div>
                       </div>
                     ))

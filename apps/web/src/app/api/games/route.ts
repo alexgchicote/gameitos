@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createGame, getRecentGames, completeGame } from '@gameitos/db';
+import { createGameMatch, getRecentGameMatches, completeGameMatch } from '@gameitos/db';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
     
-    const games = await getRecentGames(limit);
+    const games = await getRecentGameMatches(limit);
     return NextResponse.json(games);
   } catch (error) {
     console.error('Error fetching games:', error);
@@ -20,11 +20,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, gameType, results } = body;
+    const { gameId, matchName, results } = body;
     
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    if (!gameId || typeof gameId !== 'string' || gameId.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Game name is required' },
+        { error: 'Game ID is required' },
         { status: 400 }
       );
     }
@@ -48,23 +48,23 @@ export async function POST(request: NextRequest) {
     
     const playerIds = results.map(r => r.playerId);
     
-    // Create game
-    const game = await createGame({
-      name: name.trim(),
-      gameType: gameType?.trim(),
+    // Create game match
+    const gameMatch = await createGameMatch({
+      gameId: gameId.trim(),
+      matchName: matchName?.trim() || undefined,
       playerIds,
     });
     
-    // Complete game with results
-    const completedGame = await completeGame({
-      gameId: game.id,
+    // Complete game match with results
+    const completedGameMatch = await completeGameMatch({
+      gameMatchId: gameMatch.id,
       results: results.map(r => ({
         playerId: r.playerId,
         position: r.position,
       })),
     });
     
-    return NextResponse.json(completedGame, { status: 201 });
+    return NextResponse.json(completedGameMatch, { status: 201 });
   } catch (error) {
     console.error('Error creating game:', error);
     return NextResponse.json(
