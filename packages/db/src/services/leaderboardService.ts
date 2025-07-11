@@ -1,6 +1,6 @@
 import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { players, games, gameMatches, gameResults } from '../schema';
+import { players, games, matches, gameResults } from '../schema';
 
 export type LeaderboardPlayer = {
   id: string;
@@ -75,12 +75,12 @@ export async function getLeaderboard(
 export async function getPlayerRecentForm(playerId: string, gameCount: number = 5): Promise<number[]> {
   const recentResults = await db
     .select({
-      position: gameResults.position,
+      position: gameResults.positionFromMedian,
     })
     .from(gameResults)
-    .innerJoin(gameMatches, eq(gameResults.gameMatchId, gameMatches.id))
+    .innerJoin(matches, eq(gameResults.gameMatchId, matches.id))
     .where(eq(gameResults.playerId, playerId))
-    .orderBy(desc(gameMatches.completedAt))
+    .orderBy(matches.completedAt)
     .limit(gameCount);
 
   return recentResults.map(r => r.position);
@@ -102,17 +102,17 @@ export async function getPlayerStats(playerId: string) {
     .select({
       gameMatchId: gameResults.gameMatchId,
       gameName: games.name,
-      matchName: gameMatches.matchName,
+      matchName: matches.matchName,
       position: gameResults.position,
       pointsAwarded: gameResults.pointsAwarded,
-      totalPlayers: gameMatches.totalPlayers,
-      completedAt: gameMatches.completedAt,
+      totalPlayers: matches.totalPlayers,
+      completedAt: matches.completedAt,
     })
     .from(gameResults)
-    .innerJoin(gameMatches, eq(gameResults.gameMatchId, gameMatches.id))
-    .innerJoin(games, eq(gameMatches.gameId, games.id))
+    .innerJoin(matches, eq(gameResults.gameMatchId, matches.id))
+    .innerJoin(games, eq(matches.gameId, games.id))
     .where(eq(gameResults.playerId, playerId))
-    .orderBy(desc(gameMatches.completedAt))
+    .orderBy(desc(matches.completedAt))
     .limit(10);
 
   // Calculate position statistics
@@ -148,8 +148,8 @@ export async function getGameLeaderboard(gameId: string, limit: number = 20) {
       podiums: sql<number>`sum(case when ${gameResults.position} <= 3 then 1 else 0 end)`,
     })
     .from(gameResults)
-    .innerJoin(gameMatches, eq(gameResults.gameMatchId, gameMatches.id))
-    .innerJoin(games, eq(gameMatches.gameId, games.id))
+    .innerJoin(matches, eq(gameResults.gameMatchId, matches.id))
+    .innerJoin(games, eq(matches.gameId, games.id))
     .innerJoin(players, eq(gameResults.playerId, players.id))
     .where(eq(games.id, gameId))
     .groupBy(gameResults.playerId, players.name)

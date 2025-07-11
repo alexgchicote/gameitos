@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { players } from './players';
 import { games } from './games';
-import { gameMatches } from './game_matches';
+import { matches } from './game_matches';
 import { gameResults } from './game_results';
 import { gameTypes } from './game_types';
 
@@ -15,13 +15,13 @@ export const gamesRelations = relations(games, ({ one, many }) => ({
         fields: [games.gameTypeId],
         references: [gameTypes.id],
     }),
-    matches: many(gameMatches),
+    matches: many(matches),
 }));
 
 export const gameResultsRelations = relations(gameResults, ({ one }) => ({
-    gameMatch: one(gameMatches, {
+    gameMatch: one(matches, {
         fields: [gameResults.gameMatchId],
-        references: [gameMatches.id],
+        references: [matches.id],
     }),
     player: one(players, {
         fields: [gameResults.playerId],
@@ -33,9 +33,9 @@ export const gameTypesRelations = relations(gameTypes, ({ many }) => ({
     games: many(games),
 }));
 
-export const gameMatchesRelations = relations(gameMatches, ({ one, many }) => ({
+export const matchesRelations = relations(matches, ({ one, many }) => ({
     game: one(games, {
-        fields: [gameMatches.gameId],
+        fields: [matches.gameId],
         references: [games.id],
     }),
     results: many(gameResults),
@@ -48,12 +48,12 @@ export type GameResult = typeof gameResults.$inferSelect;
 export type NewGameResult = typeof gameResults.$inferInsert;
 export type GameType = typeof gameTypes.$inferSelect;
 export type NewGameType = typeof gameTypes.$inferInsert;
-export type GameMatch = typeof gameMatches.$inferSelect;
-export type NewGameMatch = typeof gameMatches.$inferInsert;
+export type GameMatch = typeof matches.$inferSelect;
+export type NewGameMatch = typeof matches.$inferInsert;
 
 // Re-export specific items to avoid conflicts
 export { games, type Game, type InsertGame } from './games';
-export { gameMatches } from './game_matches';
+export { matches, type Match, type InsertMatch } from './game_matches';
 export * from './players';
 export * from './game_results';
 export * from './game_types';

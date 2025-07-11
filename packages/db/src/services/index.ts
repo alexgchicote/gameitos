@@ -18,12 +18,30 @@ export function calculatePositionFromMedian(position: number, totalPlayers: numb
   if (position < 1 || position > totalPlayers || totalPlayers < 1) {
     return 0;
   }
-  
-  // Calculate the median position
-  const medianPosition = (totalPlayers + 1) / 2;
-  
-  // Return the distance from median (positive = above median, negative = below median)
-  return Math.round(medianPosition - position);
+
+  // When the number of players is odd there is a single true median.
+  if (totalPlayers % 2 === 1) {
+    const medianPosition = (totalPlayers + 1) / 2; // integer
+    return medianPosition - position; // positive = above median, negative = below
+  }
+
+  // Even number of players → there are two middle positions.
+  // Treat both central positions as distance 0 from the "true" median.
+  const lowerMedian = totalPlayers / 2;        // e.g. 2 when totalPlayers = 4
+  const upperMedian = lowerMedian + 1;         // e.g. 3 when totalPlayers = 4
+
+  if (position <= lowerMedian) {
+    // Above or at the lower median
+    return lowerMedian - position;
+  }
+
+  if (position >= upperMedian) {
+    // Below or at the upper median
+    return -(position - upperMedian);
+  }
+
+  // Should never reach here, but fallback to 0
+  return 0;
 }
 
 function generateSymmetricPointDistribution(totalPlayers: number): number[] {
@@ -104,4 +122,11 @@ export function getPointDistributionPreview(totalPlayers: number): Array<{positi
     points,
     positionFromMedian: calculatePositionFromMedian(index + 1, totalPlayers)
   }));
-} 
+}
+
+// packages/db/src/services/index.ts
+export * from './gameService';
+export * from './matchService';
+export * from './gameTypeService';
+export * from './leaderboardService';
+export * from './playerService';

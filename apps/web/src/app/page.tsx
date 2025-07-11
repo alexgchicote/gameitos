@@ -25,8 +25,8 @@ type Player = {
 
 type Match = {
   id: string;
-  name: string;
   matchName: string | null;
+  gameName: string;
   gameType: string | null;
   totalPlayers: number;
   status: string;
@@ -37,9 +37,9 @@ type Match = {
 
 type Stats = {
   totalPlayers: number;
-  totalGames: number;
+  totalMatches: number;
   topScore: number;
-  avgPointsPerGame: number;
+  avgPointsPerMatch: number;
 };
 
 type MatchResult = {
@@ -73,17 +73,40 @@ const getRankBadgeClass = (rank: number) => {
   return "bg-gray-100 text-gray-800";
 };
 
-const getFormTrend = (recentForm: number[]) => {
-  if (recentForm.length < 2) return "neutral";
-  const recent = recentForm.slice(0, 3);
-  const older = recentForm.slice(3);
-  const avgRecent = recent.reduce((a, b) => a + b, 0) / recent.length;
-  const avgOlder = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : avgRecent;
-  
-  if (avgRecent < avgOlder) return "up";
-  if (avgRecent > avgOlder) return "down";
-  return "neutral";
-};
+// Helper to map points to Tailwind color class
+function getFormCircleColor(positionFromMedian: number) {
+  if (positionFromMedian >= 3) return "bg-green-800";
+  if (positionFromMedian >= 2) return "bg-green-700";
+  if (positionFromMedian >= 1) return "bg-green-300";
+  if (positionFromMedian === 0) return "bg-gray-300";
+  if (positionFromMedian >= -1) return "bg-red-300";
+  if (positionFromMedian >= -2) return "bg-red-700";
+  if (positionFromMedian >= -3) return "bg-red-800";
+  return "bg-gray-300";
+}
+
+function RecentFormCircles({ recentForm }: { recentForm: number[] }) {
+  // Show the most recent result on the left.
+  // 1. Take the **last** five entries (in case the array is longer).
+  // 2. Pad **at the start** with zeros if we have fewer than five.
+  const lastFive = recentForm.slice(-5);
+  const padded: number[] = [...lastFive];
+  while (padded.length < 5) {
+    padded.unshift(0);
+  }
+
+  return (
+    <div className="flex gap-1">
+      {padded.map((points, idx) => (
+        <span
+          key={idx}
+          title={`Points: ${points}`}
+          className={`inline-block w-3 h-3 rounded-full border border-gray-300 ${getFormCircleColor(points)}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"leaderboard" | "add-game" | "add-player">("leaderboard");
@@ -91,7 +114,7 @@ export default function HomePage() {
   
   // State for data
   const [players, setPlayers] = useState<Player[]>([]);
-  const [stats, setStats] = useState<Stats>({ totalPlayers: 0, totalGames: 0, topScore: 0, avgPointsPerGame: 0 });
+  const [stats, setStats] = useState<Stats>({ totalPlayers: 0, totalMatches: 0, topScore: 0, avgPointsPerMatch: 0 });
   const [recentMatches, setRecentMatches] = useState<Match[]>([]);
   const [pointDistribution, setPointDistribution] = useState(defaultPointDistribution);
   
@@ -106,25 +129,25 @@ export default function HomePage() {
       setIsLoading(true);
       setError(null);
       
-      const [playersRes, statsRes, gamesRes] = await Promise.all([
+      const [playersRes, statsRes, matchResults] = await Promise.all([
         fetch('/api/leaderboard'),
         fetch('/api/stats'),
-        fetch('/api/games?limit=5')
+        fetch('/api/matches')
       ]);
       
-      if (!playersRes.ok || !statsRes.ok || !gamesRes.ok) {
+      if (!playersRes.ok || !statsRes.ok || !matchResults.ok) {
         throw new Error('Failed to fetch data');
       }
       
-      const [playersData, statsData, gamesData] = await Promise.all([
+      const [playersData, statsData, matchesData] = await Promise.all([
         playersRes.json(),
         statsRes.json(),
-        gamesRes.json()
+        matchResults.json()
       ]);
       
       setPlayers(playersData);
       setStats(statsData);
-      setRecentMatches(gamesData);
+      setRecentMatches(matchesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -353,51 +376,12 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Mobile Navigation */}
-      <div className="bg-background border-b md:hidden">
-        <div className="flex">
-          <button
-            onClick={() => setActiveTab("leaderboard")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium ${
-              activeTab === "leaderboard"
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground"
-            }`}
-          >
-            <Trophy className="h-4 w-4" />
-            Leaderboard
-          </button>
-          <button
-            onClick={() => setActiveTab("add-game")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium ${
-              activeTab === "add-game"
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground"
-            }`}
-          >
-            <Target className="h-4 w-4" />
-            Add Game
-          </button>
-          <button
-            onClick={() => setActiveTab("add-player")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium ${
-              activeTab === "add-player"
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground"
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            Add Player
-          </button>
-        </div>
-      </div>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Desktop Navigation */}
-            <div className="hidden md:block">
+            <div>
               <div className="flex space-x-1 bg-muted p-1 rounded-lg">
                 <button
                   onClick={() => setActiveTab("leaderboard")}
@@ -419,7 +403,7 @@ export default function HomePage() {
                   }`}
                 >
                   <Target className="h-4 w-4" />
-                  Record Game
+                  Add Match
                 </button>
                 <button
                   onClick={() => setActiveTab("add-player")}
@@ -436,7 +420,7 @@ export default function HomePage() {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 mt-0">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
@@ -454,8 +438,8 @@ export default function HomePage() {
                   <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-green-500" />
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Games</p>
-                      <p className="text-2xl font-bold">{stats.totalGames}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Matches</p>
+                      <p className="text-2xl font-bold">{stats.totalMatches}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -485,7 +469,6 @@ export default function HomePage() {
                     ) : (
                       players.map((player: Player, index: number) => {
                         const rank = index + 1;
-                        const formTrend = getFormTrend(player.recentForm);
                         
                         return (
                           <div
@@ -510,10 +493,8 @@ export default function HomePage() {
                                 <span className="font-mono font-bold text-foreground">{player.totalPoints} pts</span>
                                 <span>{player.gamesPlayed} games</span>
                                 <span>{player.wins}W</span>
-                                <span className="flex items-center gap-1">
-                                  {formTrend === "up" && <TrendingUp className="h-3 w-3 text-green-500" />}
-                                  {formTrend === "down" && <div className="h-3 w-3 text-red-500 transform rotate-180"><TrendingUp /></div>}
-                                  <span className="hidden sm:inline">Form</span>
+                                <span className="flex items-center gap-2">
+                                  <RecentFormCircles recentForm={player.recentForm} />
                                 </span>
                               </div>
                             </div>
@@ -609,7 +590,7 @@ export default function HomePage() {
                     recentMatches.map((match) => (
                       <div key={match.id} className="text-sm border rounded-lg p-3 hover:bg-muted/50 transition-colors">
                         <div className="font-medium mb-2">
-                          {match.name}
+                          {match.gameName}
                           {match.matchName && (
                             <span className="font-normal text-gray-600 dark:text-gray-400"> - {match.matchName}</span>
                           )}

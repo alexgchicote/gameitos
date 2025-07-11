@@ -1,0 +1,1 @@
+ALTER TABLE "game_results" ALTER COLUMN "position_from_median" SET NOT NULL;
