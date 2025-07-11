@@ -1,0 +1,12 @@
+{
+  "/api/game-types/route": "/api/game-types",
+  "/api/games/available/route": "/api/games/available",
+  "/api/games/route": "/api/games",
+  "/api/games/create/route": "/api/games/create",
+  "/_not-found/page": "/_not-found",
+  "/api/leaderboard/route": "/api/leaderboard",
+  "/api/matches/route": "/api/matches",
+  "/api/stats/route": "/api/stats",
+  "/api/players/route": "/api/players",
+  "/page": "/"
+}

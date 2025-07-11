@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trophy, Medal, Award, Plus, Users, Target, TrendingUp, Loader2, AlertCircle, RefreshCw, ChevronsDown } from "lucide-react";
+import { Trophy, Medal, Award, Plus, Users, Target, Loader2, AlertCircle, RefreshCw, ChevronsDown } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { GameResultForm } from "@/components/leaderboard/GameResultForm";
 import { PointDistributionPreview } from "@/components/leaderboard/PointDistributionPreview";

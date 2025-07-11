@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createGame, getAvailableGames } from '@gameitos/db';
 
 export async function GET() {

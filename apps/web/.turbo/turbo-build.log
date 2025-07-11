@@ -7,124 +7,31 @@
    - Environments: .env.local
 
  [37m[1m [22m[39m Creating an optimized production build ...
- ⚠ Compiled with warnings in 0ms
-
-./src/app/api/stats/route.ts
-Attempted import error: 'getRecentGames' is not exported from '@gameitos/db' (imported as 'getRecentGames').
-
-Import trace for requested module:
-./src/app/api/stats/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
-../../packages/db/src/services/leaderboardService.ts
-Attempted import error: 'gameMatches' is not exported from '../schema' (imported as 'gameMatches').
-
-Import trace for requested module:
-../../packages/db/src/services/leaderboardService.ts
-../../packages/db/src/index.ts
-./src/app/api/games/create/route.ts
-
  [32m[1m✓[22m[39m Compiled successfully in 0ms
-[?25l [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G[?25h[31m
-Failed to compile.[39m
-[?25l [36m.[39m [2K[1G[?25h
-./src/app/api/games/route.ts
-1:10  Error: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+[?25l [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m..[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m...[39m[2K[1G [37m[1m [22m[39m Linting and checking validity of types  [36m.[39m[2K[1G[?25h [37m[1m [22m[39m Linting and checking validity of types     [32m[1m✓[22m[39m Linting and checking validity of types 
+[?25l [37m[1m [22m[39m Collecting page data  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting page data  [36m..[39m[2K[1G[?25h [37m[1m [22m[39m Collecting page data     [32m[1m✓[22m[39m Collecting page data 
+[?25l [37m[1m [22m[39m Generating static pages (0/12)  [36m[    ][39m[2K[1G [37m[1m [22m[39m Generating static pages (0/12)  [36m[=   ][39m[2K[1G[?25h [32m[1m✓[22m[39m Generating static pages (12/12)
+[?25l [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[?25l [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m..[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m...[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m...[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m..[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m...[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m...[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m..[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m...[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m...[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m..[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m...[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m...[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m.[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m.[39m[2K[1G [37m[1m [22m[39m Finalizing page optimization  [36m..[39m[2K[1G [37m[1m [22m[39m Collecting build traces  [36m..[39m[2K[1G[?25h [37m[1m [22m[39m Collecting build traces     [32m[1m✓[22m[39m Collecting build traces 
+[2K[1G[?25h [37m[1m [22m[39m Finalizing page optimization     [32m[1m✓[22m[39m Finalizing page optimization 
 
-info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
-[?25l [36m.[39m [?25h[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 1.[39m
+[4mRoute (app)[24m                                 [4mSize[24m  [4mFirst Load JS[24m  [4m[24m  [4m[24m
+┌ ○ /                                    16.7 kB         [37m[1m118 kB[22m[39m
+├ ○ /_not-found                            978 B         [37m[1m103 kB[22m[39m
+├ ƒ /api/game-types                        155 B         [37m[1m102 kB[22m[39m
+├ ƒ /api/games                             155 B         [37m[1m102 kB[22m[39m
+├ ƒ /api/games/available                   155 B         [37m[1m102 kB[22m[39m
+├ ƒ /api/games/create                      155 B         [37m[1m102 kB[22m[39m
+├ ƒ /api/leaderboard                       155 B         [37m[1m102 kB[22m[39m
+├ ƒ /api/matches                           155 B         [37m[1m102 kB[22m[39m
+├ ƒ /api/players                           155 B         [37m[1m102 kB[22m[39m
+└ ƒ /api/stats                             155 B         [37m[1m102 kB[22m[39m
++ First Load JS shared by all             [37m[1m102 kB[22m[39m
+  ├ chunks/305-367871b710836793.js       46.6 kB
+  ├ chunks/ff78d1b8-334a7cc3c9a1517d.js  53.2 kB
+  └ other shared chunks (total)          1.91 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+[?25h
