@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trophy, Medal, Award, Plus, Users, Target, Loader2, AlertCircle, RefreshCw, ChevronsDown } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { GameResultForm } from "@/components/leaderboard/GameResultForm";
+import { MatchResultForm } from "@/components/leaderboard/MatchResultForm";
 import { PointDistributionPreview } from "@/components/leaderboard/PointDistributionPreview";
 
 // Types
@@ -74,39 +74,39 @@ const getRankBadgeClass = (rank: number) => {
 };
 
 // Helper to map points to Tailwind color class
-function getFormCircleColor(positionFromMedian: number) {
-  if (positionFromMedian >= 3) return "bg-green-800";
-  if (positionFromMedian >= 2) return "bg-green-700";
-  if (positionFromMedian >= 1) return "bg-green-300";
-  if (positionFromMedian === 0) return "bg-gray-300";
-  if (positionFromMedian >= -1) return "bg-red-300";
-  if (positionFromMedian >= -2) return "bg-red-700";
-  if (positionFromMedian >= -3) return "bg-red-800";
-  return "bg-gray-300";
-}
+// function getFormCircleColor(positionFromMedian: number) {
+//   if (positionFromMedian >= 3) return "bg-green-800";
+//   if (positionFromMedian >= 2) return "bg-green-700";
+//   if (positionFromMedian >= 1) return "bg-green-300";
+//   if (positionFromMedian === 0) return "bg-gray-300";
+//   if (positionFromMedian >= -1) return "bg-red-300";
+//   if (positionFromMedian >= -2) return "bg-red-700";
+//   if (positionFromMedian >= -3) return "bg-red-800";
+//   return "bg-gray-300";
+// }
 
-function RecentFormCircles({ recentForm }: { recentForm: number[] }) {
-  // Show the most recent result on the left.
-  // 1. Take the **last** five entries (in case the array is longer).
-  // 2. Pad **at the start** with zeros if we have fewer than five.
-  const lastFive = recentForm.slice(-5);
-  const padded: number[] = [...lastFive];
-  while (padded.length < 5) {
-    padded.unshift(0);
-  }
+// function RecentFormCircles({ recentForm }: { recentForm: number[] }) {
+//   // Show the most recent result on the left.
+//   // 1. Take the **last** five entries (in case the array is longer).
+//   // 2. Pad **at the start** with zeros if we have fewer than five.
+//   const lastFive = recentForm.slice(-5);
+//   const padded: number[] = [...lastFive];
+//   while (padded.length < 5) {
+//     padded.unshift(0);
+//   }
 
-  return (
-    <div className="flex gap-1">
-      {padded.map((points, idx) => (
-        <span
-          key={idx}
-          title={`Points: ${points}`}
-          className={`inline-block w-3 h-3 rounded-full border border-gray-300 ${getFormCircleColor(points)}`}
-        />
-      ))}
-    </div>
-  );
-}
+//   return (
+//     <div className="flex gap-1">
+//       {padded.map((points, idx) => (
+//         <span
+//           key={idx}
+//           title={`Points: ${points}`}
+//           className={`inline-block w-3 h-3 rounded-full border border-gray-300 ${getFormCircleColor(points)}`}
+//         />
+//       ))}
+//     </div>
+//   );
+// }
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"leaderboard" | "add-game" | "add-player">("leaderboard");
@@ -181,8 +181,8 @@ export default function HomePage() {
     }
   };
   
-  // Record game
-  const recordGame = async (gameId: string, matchName: string | undefined, results: MatchResult[], newGameName?: string, newGameTypeId?: string) => {
+  // Record match
+  const recordMatch = async (gameId: string, matchName: string | undefined, results: MatchResult[], newGameName?: string, newGameTypeId?: string) => {
     try {
       setIsSubmitting(true);
       
@@ -207,7 +207,7 @@ export default function HomePage() {
         actualGameId = newGame.id;
       }
       
-      const response = await fetch('/api/games', {
+      const response = await fetch('/api/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -219,13 +219,13 @@ export default function HomePage() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to record game');
+        throw new Error(errorData.error || 'Failed to record match');
       }
       
       await fetchData(); // Refresh data
       setActiveTab("leaderboard"); // Switch to leaderboard
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to record game');
+      setError(err instanceof Error ? err.message : 'Failed to record match');
     } finally {
       setIsSubmitting(false);
     }
@@ -493,9 +493,9 @@ export default function HomePage() {
                                 <span className="font-mono font-bold text-foreground">{player.totalPoints} pts</span>
                                 <span>{player.gamesPlayed} games</span>
                                 <span>{player.wins}W</span>
-                                <span className="flex items-center gap-2">
+                                {/* <span className="flex items-center gap-2">
                                   <RecentFormCircles recentForm={player.recentForm} />
-                                </span>
+                                </span> */}
                               </div>
                             </div>
 
@@ -517,9 +517,9 @@ export default function HomePage() {
 
             {/* Add Game Form */}
             {activeTab === "add-game" && (
-              <GameResultForm
+              <MatchResultForm
                 players={players}
-                onSubmit={recordGame}
+                onSubmit={recordMatch}
                 onPointPreview={updatePointDistribution}
                 isSubmitting={isSubmitting}
               />
